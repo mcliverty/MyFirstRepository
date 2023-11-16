@@ -1,0 +1,218 @@
+---
+title: "STA 445 Assignment 2"
+author: "Kaylin McLiverty"
+date: "2023-10-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Exercise 1
+Write a function that calculates the density function of a Uniform continuous 
+    variable on the interval $\left(a,b\right)$. The function is defined as 
+    $$f\left(x\right)=\begin{cases}
+    \frac{1}{b-a} & \;\;\;\textrm{if }a\le x\le b\\
+    0 & \;\;\;\textrm{otherwise}
+    \end{cases}$$
+ We want to write a function `duniform(x, a, b)` that takes an arbitrary 
+    value of `x` and parameters a and b and return the appropriate height of 
+    the density function. For various values of `x`, `a`, and `b`, demonstrate 
+    that your function returns the correct density value. 
+    a)  Write your function without regard for it working with vectors of data. 
+        Demonstrate that it works by calling the function with a three times, 
+        once where $x< a$, once where $a < x < b$, and finally once where $b < x$.
+    b)  Next we force our function to work correctly for a vector of `x` values. 
+        Modify your function in part (a) so that the core logic is inside a `for` 
+        statement and the loop moves through each element of `x` in succession. 
+    c)  Install the R package `microbenchmark`. We will use this to discover the 
+        average duration your function takes.
+    d)  Instead of using a `for` loop, it might have been easier to use an 
+        `ifelse()` command. Rewrite your function to avoid the `for` loop and just 
+        use an `ifelse()` command. Verify that your function works correctly by 
+        producing a plot, and also run the `microbenchmark()`. Which version of 
+        your function was easier to write? Which ran faster?
+```{r}
+#Exercise 1: Part a
+
+duniform <- function(x,a,b){
+  if (a < x && x < b) {return(1/(b-a))}
+  else {return(0)}
+}
+duniform(0, 1, 2)
+duniform(1, 0, 2)
+duniform(3, 1, 2)
+
+```
+```{r}
+#Exercise 1: Part b
+     duniform <- function(x, a, b){
+          output <- NULL
+          for( i in 1:length(x) ){ 
+            if( x[i] > a && x[i] < b ){ 
+             output[i] = (1/(b-a))
+            }else{
+              output[i] = 0
+            }
+          }
+          return(output)
+        }
+  
+data.frame( x=seq(-1, 12, by=.001) ) %>%
+          mutate( y = duniform(x, 4, 8) ) %>%
+          ggplot( aes(x=x, y=y) ) +
+          geom_step()
+```
+```{r}
+#Exercise 1: Part C
+#Installing the R package
+g <- microbenchmark::microbenchmark( duniform( seq(-4,12,by=.0001), 4, 8), times=100)
+g
+```
+
+```{r}
+#Exercise 1: Part D
+     duniform <- function(x, a, b){
+         density <- ifelse( x > a & x < b,
+            (1/(b-a)), 0)
+       return(density)
+       }
+  
+data.frame( x=seq(-1, 12, by=.001) ) %>%
+          mutate( y = duniform(x, 4, 8) ) %>%
+          ggplot( aes(x=x, y=y) ) +
+          geom_step()
+
+h <- microbenchmark::microbenchmark( duniform( seq(-4,12,by=.0001), 4, 8), times=100)
+h
+
+```
+# Exercise 2
+I very often want to provide default values to a parameter that I pass to a 
+    function. For example, it is so common for me to use the `pnorm()` and `qnorm()` 
+    functions on the standard normal, that R will automatically use `mean=0` and 
+    `sd=1` parameters unless you tell R otherwise. To get that behavior, we just 
+    set the default parameter values in the definition. When the function is 
+    called, the user specified value is used, but if none is specified, the defaults 
+    are used. Look at the help page for the functions `dunif()`, and notice that 
+    there are a number of default parameters. For your `duniform()` function 
+    provide default values of `0` and `1` for `a` and `b`. Demonstrate that your 
+    function is appropriately using the given default values. 
+```{r}
+#Exercise 2
+#Setting a=0 and b=1 so that they are the default values if there is no input for a and b
+duniform <- function(x, a=0, b=1){
+         density <- ifelse( x > a & x < b,
+            (1/(b-a)), 0)
+       return(density)
+}
+duniform(.5)
+duniform(2)
+```
+
+
+# Exercise 3
+A common data processing step is to *standardize* numeric variables by subtracting 
+    the mean and dividing by the standard deviation. Mathematically, the standardized
+    value is defined as
+    $$z = \frac{x-\bar{x}}{s}$$
+    where $\bar{x}$ is the mean and $s$ is the standard deviation.
+    Create a function that takes an input vector of numerical values and produces
+    an output vector of the standardized 
+    values. We will then apply this function to each numeric column in a data frame 
+    using the `dplyr::across()` or the `dplyr::mutate_if()` commands. 
+    *This is often done in model algorithms*
+    *that rely on numerical optimization methods to find a solution. By keeping the*
+    *scales of different predictor covariates the same, the numerical optimization*
+    *routines generally work better.*
+
+```{r}
+#Exercise 3
+#I copied code from the book and created a new function.
+standardize <- function(x){
+      (x-mean(x)/sd(x))
+    }
+ data( 'iris' )
+    # Graph the pre-transformed data.
+    ggplot(iris, aes(x=Sepal.Length, y=Sepal.Width, color=Species)) +
+      geom_point() +
+      labs(title='Pre-Transformation')
+    
+    # Standardize all of the numeric columns
+    # across() selects columns and applies a function to them
+    # there column select requires a dplyr column select command such
+    # as starts_with(), contains(), or where().  The where() command
+    # allows us to use some logical function on the column to decide
+    # if the function should be applied or not.
+    iris.z <- iris %>% mutate( across(where(is.numeric), standardize) )
+    
+    # Graph the post-transformed data.
+    ggplot(iris.z, aes(x=Sepal.Length, y=Sepal.Width, color=Species)) +
+      geom_point() +
+      labs(title='Post-Transformation')
+```
+
+
+# Exercise 4
+In this example, we'll write a function that will output a  vector of the 
+    first $n$ terms in the child's game *Fizz Buzz*. The goal is to count as high 
+    as you can, but for any number evenly divisible by 3, substitute "Fizz" and 
+    any number evenly divisible by 5, substitute "Buzz", and if it is divisible 
+    by both, substitute "Fizz Buzz". So the sequence will look like 
+    1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, ... 
+    *Hint: The `paste()` function will squish strings together, the remainder*
+    *operator is `%%` where it is used as `9 %% 3 = 0`. This problem was inspired*
+    *by a wonderful YouTube [video](https://www.youtube.com/watch?v=QPZ0pIK_wsc)*
+    *that describes how to write an appropriate loop to do this in JavaScript,*
+    *but it should be easy enough to interpret what to do in R. I encourage you*
+    *to try to write your function first before watching the video.*
+
+```{r}
+fizzybuzz <- function(x){
+  output <- NULL
+  for (i in 1:length(x)) {
+    if (x[i] %% 3 == 0 & x[i] %% 5 != 0){
+      output[i]='Fizz'} 
+    if (x[i] %% 5 == 0 & x[i] %% 3 != 0){
+      output[i]='Buzz'} 
+    if(x[i] %% 3 ==0 & x[i] %% 5 ==0){
+      output[i]='FizzBuzz'}
+    if (x[i] %% 3 !=0 & x[i] %% 5 !=0) {output[i]= x[i]}
+  }
+  return(output)
+  }
+
+fizzybuzz(1:30)
+```
+
+
+# Exercise 5
+The `dplyr::fill()` function takes a table column that has missing values and 
+    fills them with the most recent non-missing value. For this problem, we will 
+    create our own function to do the same.
+    
+```{r}
+ #' Fill in missing values in a vector with the previous value.
+    #' 
+    #' @parm x An input vector with missing values
+    #' @result The input vector with NA values filled in.
+    #' 
+    #' 
+    myFill <- function(x){
+      for (i in 1:length(x)) {
+      if (is.na(x[i])){
+        x[i] = x[i-1]}
+       #else{x[i]=x[i]}
+      
+      }
+      return(x)
+    }
+test.vector <- c('A',NA,NA, 'B','C', NA,NA,NA)
+myFill(test.vector)
+```
+
+    
+    
+    

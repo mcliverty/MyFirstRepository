@@ -1,0 +1,354 @@
+---
+title: "STA 445 Assignment 3"
+author: "Kaylin McLiverty"
+date: "2023-10-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(stringr)
+library(refineR)
+library(lubridate)
+library(ggplot2)
+```
+
+# Chapter 11
+## Exercise 1
+For the following regular expression, explain in words what it matches on. Then add test strings to demonstrate that it in fact does match on the pattern you claim it does. Make sure that your test set of strings has several examples that match as well as several that do not.
+
+
+a) This regular expression matches: *the expression is detecting any 'a' characters within the strings of the vector.*
+```{r}
+strings <- c('testing','chasing','that','feeling')
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, 'a') )
+```
+
+b) This regular expression matches:  *the expression is detecting any 'ab' characters (in that particular order) within the strings of the vector.*
+```{r}
+strings <- c('absolute', 'ballet', 'scales', 'atob')
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, 'ab') )
+```
+
+c)  This regular expression matches:  *this expression is detecting any 'a' or 'b' character within the strings of the vector. The order does not matter, as long as there is at least one 'a' or 'b'.*
+```{r}
+strings <- c('absolute', 'ballet', 'scales', 'blink', 'learn', 'txt')
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, '[ab]') )
+```
+ 
+ d)  This regular expression matches:  *the expression detects if there is an 'a' or 'b' character at the start of the string within the vector of strings.*
+```{r}
+strings <- c('absolute', 'ballet', 'scales', 'blink', 'learn', 'txt', 'rib', 1)
+data.frame( string = strings ) %>%
+  mutate( result = str_detect(string, '^[ab]') )
+```
+ 
+e)  This regular expression matches:  *This expression detects if a string begins with any number, followed by a blank space, and then followed by an 'a' or 'A' character. If the previous conditions are not satisfied, then a FALSE result will show.*
+```{r}
+strings <- c('1 aAaAAAAa', '2 A quick fox', '1 backwards', '4a' )
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, '\\d+\\s[aA]') )
+```
+
+f)  This regular expression matches:  *This expression detects if a string begins with any number, followed by a blank space or not, and then followed by an 'a' or 'A' character. This is similar to part e, but now, the expression will accept (a number, space, 'a' or 'A' combination) OR (a number, 'a' or 'A' combination).*
+```{r}
+strings <- c('1 aAaAAAAa', '2 A quick fox', '1 backwards', '4a', 'A', '9A')
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, '\\d+\\s*[aA]') )
+```
+
+
+g)  This regular expression matches:  *This expression detects if there is any character with zero or more repetitions.*
+```{r}
+strings <- c('i     have an     idea     ', '1', '    1 2     3', ' y', 'y   ','g','')
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, '.*') )
+```
+
+
+h) This regular expression matches: *This expression detects strings that contain any of the two same alphanumeric characters immediately followed by 'bar'.*
+```{r}
+strings <- c('ttbar', '--bar', 'nnmmbar')
+data.frame( string = strings ) %>%
+mutate( result = str_detect(string, '^\\w{2}bar') )
+```
+
+
+i) This regular expression matches: *This expression detects strings that contain any of the two same alphanumeric characters immediately followed by 'bar' OR the expression will take the any number of characters as long if it ends with 'foo.bar'.*
+```{r}
+strings <- c('nnbar', 'foooo.bar', '*-foo.bar', 'foo.bar', 'nn.bar',
+             'abdcfoo.bar', '1234foo.bar','--.bar')
+        data.frame( string = strings ) %>%
+          mutate( result = str_detect(string, '(foo\\.bar)|(^\\w{2}bar)') )
+```
+
+## Exercise 2
+The following file names were used in a camera trap study. The S number represents the site, P is the plot within a site, C is the camera number within the plot, the first string of numbers is the YearMonthDay and the second string of numbers is the HourMinuteSecond. Produce a data frame with columns corresponding to the `site`, `plot`, `camera`, `year`, `month`, `day`, `hour`, `minute`, and `second` for these three file names.
+
+```{r}
+ file.names <- c( 'S123.P2.C10_20120621_213422.jpg',
+                     'S10.P1.C1_20120622_050148.jpg',
+                     'S187.P2.C2_20120702_023501.jpg')
+
+file.names1 <- str_replace_all(file.names, pattern='_', replacement='\\.')
+ 
+file.names1
+
+file.names2 <- str_split_fixed(file.names1, pattern='\\.', n=6)
+file.names2
+
+
+Year = str_sub(file.names2[ ,4], start=1, end=4)
+Year
+
+Month = str_sub(file.names2[ ,4], start=5, end=6)
+Month
+
+Day = str_sub(file.names2[ ,4], start=7, end=8)
+Day
+
+Hour = str_sub(file.names2[ ,5], start=1, end=2)
+Hour
+
+Minute = str_sub(file.names2[ ,5], start=3, end=4)
+Minute
+
+Second = str_sub(file.names2[ ,5], start=5, end=6)
+Second
+
+
+file.names.final = data.frame(
+  Site = file.names2[,1],
+  Plot = file.names2[,2],
+  Camera = file.names2[,3],
+  Year = Year,
+  Month = Month,
+  Day = Day,
+  Hour = Hour,
+  Minute = Minute,
+  Second = Second
+)
+file.names.final
+
+```
+
+
+## Exercise 3
+The full text from Lincoln's Gettysburg Address is given below. Calculate the mean word length *Note: consider 'battle-field' as one word with 11 letters*).
+
+```{r}
+Gettysburg <- 'Four score and seven years ago our fathers brought forth on this 
+continent, a new nation, conceived in Liberty, and dedicated to the proposition 
+that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any 
+nation so conceived and so dedicated, can long endure. We are met on a great 
+battle-field of that war. We have come to dedicate a portion of that field, as 
+a final resting place for those who here gave their lives that that nation might 
+live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can 
+not hallow -- this ground. The brave men, living and dead, who struggled here, 
+have consecrated it, far above our poor power to add or detract. The world will 
+little note, nor long remember what we say here, but it can never forget what 
+they did here. It is for us the living, rather, to be dedicated here to the 
+unfinished work which they who fought here have thus far so nobly advanced. It 
+is rather for us to be here dedicated to the great task remaining before us -- 
+that from these honored dead we take increased devotion to that cause for which 
+they gave the last full measure of devotion -- that we here highly resolve that 
+these dead shall not have died in vain -- that this nation, under God, shall 
+have a new birth of freedom -- and that government of the people, by the people, 
+for the people, shall not perish from the earth.'
+
+Gettysburg <- str_replace_all(Gettysburg, pattern='(\\W+\\s)', 
+                          replacement= ' ')
+Gettysburg <- str_remove_all(Gettysburg, pattern='(\\.)')
+Gettysburg <- str_remove_all(Gettysburg, pattern='(\\-)')
+
+Gettysburg <- str_split(Gettysburg, pattern=' ')
+Gettysburg
+
+sum(nchar(Gettysburg[[1]]))/271
+
+```
+# Chapter 12
+## Exercise 1
+Convert the following to date or date/time objects.
+    
+    a) September 13, 2010.
+    b) Sept 13, 2010.
+    c) Sep 13, 2010.
+    d) S 13, 2010. Comment on the month abbreviation needs.
+    e) 07-Dec-1941.
+    f) 1-5-1998. Comment on why you might be wrong.
+    g) 21-5-1998. Comment on why you know you are correct.
+    h) 2020-May-5 10:30 am
+    i) 2020-May-5 10:30 am PDT (ex Seattle)
+    j) 2020-May-5 10:30 am AST (ex Puerto Rico)
+    
+```{r}
+# Exercise 1 part a
+a <- mdy('September 13, 2010')
+a
+```
+```{r}
+# Exercise 1 part b
+b <- mdy('Sept 13, 2010')
+b
+```
+*Part b fails because 'Sept' is not one of the known abbreviations within lubridate package.*
+```{r}
+#Exercise 1 part c
+c <- mdy('Sep 13, 2010')
+c
+```
+
+```{r}
+#Exercise 1 part d
+d <- mdy('S 13, 2010')
+d
+```
+*Part d fails because 's' is not one of the known abbreviations within lubridate package.*
+```{r}
+#Exercise 1 part e
+e <- dmy('07-Dec-1941')
+e
+```
+```{r}
+#Exercise 1 part f
+f <- dmy('1-5-1998')
+f
+```
+*The date given in part f is ambiguous and thus, we don't know if the '1' or '5' is the day of the month or the month itself. I chose '1' to represent the day and chose '5' to represent the month.*
+```{r}
+#Exercise 1 part g
+g <- dmy('21-5-1998')
+g
+```
+*I know that I am correct in part g because the number '21' is not ambiguous and represents the day of the month, leaving the '5' to represent the month.*
+```{r}
+#Exercise 1 part h
+h <- ymd_hm('2020-May-5 10:30 am')
+h
+```
+
+```{r}
+#Exercise 1 part i
+i <- ymd_hm('2020-May-5 10:30 am PDT', tz='America/Los_Angeles')
+i
+```
+
+#Exercise 1 part f
+```{r}
+#Exercise 1 part j
+j <- ymd_hm('2020-May-5 10:30 am AST', tz='America/Puerto_Rico')
+j
+```
+
+## Exercise 2
+Using just your date of birth (ex Sep 7, 1998) and today's date calculate the following _Write your code in a manner that the code will work on any date after you were born._:
+    
+    a) Calculate the date of your 64th birthday.
+    b) Calculate your current age (in years). Hint: Check your age is calculated correctly if
+    your birthday was yesterday and if it were tomorrow!
+    c) Using your result in part (b), calculate the date of your next birthday.
+    d) The number of _days_ until your next birthday.
+    e) The number of _months_ and _days_ until your next birthday.
+    
+```{r}
+#Exercise 2 part a
+dob <- mdy('November 2, 2001')
+dob
+#The date of my 64th birthday
+dob + years(64)
+```
+```{r}
+#Exercise 2 part b
+#My current age
+today <- mdy('October 25, 2023')
+n <- as.period(dob%--%today)
+year(n)
+```
+```{r}
+#Exercise 2 part c
+#Date of my next birthday
+myBday <- update(dob, year=2023)
+myBday
+```
+
+
+```{r}
+#Exercise 2 part d
+#Days until my birthday
+as.period(today%--%myBday, unit='days')
+```
+
+
+```{r}
+#Exercise 2 part e
+#Months and days until my birthday
+as.period(today%--%myBday, unit='months')
+```
+
+
+## Exercise 3
+Suppose you have arranged for a phone call to be at 3 pm on May 8, 2015 at Arizona time. However, the recipient will be in Auckland, NZ. What time will it be there? 
+```{r}
+#Phone call time in Arizona
+aztime <- mdy_h('May 8, 2015, 3pm', tz='US/Arizona')
+aztime
+#Phone call time in Auckland, NZ
+with_tz(aztime, tzone='Pacific/Auckland')
+```
+
+## Exercise 5
+It turns out there is some interesting periodicity regarding the number of births on particular days of the year.
+
+    a. Using the `mosaicData` package, load the data set `Births78` which records the 
+    number of children born on each day in the United States in 1978. 
+    Because this problem is intended to show how to calculate the information 
+    using the `date`, remove all the columns *except* `date` and `births`. 
+    b. Graph the number of `births` vs the `date` with date on the x-axis. What stands out
+    to you? Why do you think we have this trend?
+    c. To test your assumption, we need to figure out the what day of the week each 
+    observation is. Use `dplyr::mutate` to add a new column named `dow` that is the 
+    day of the week (Monday, Tuesday, etc). This calculation will involve some 
+    function in the `lubridate` package and the `date` column. 
+    d. Plot the data with the point color being determined by the day of the week variable.
+    
+```{rsetup, include=FALSE}
+data('Births78', package='mosaicData')
+```
+   
+```{r}
+#Exercise 5 part a
+#installed the mosaicData package and loaded the Births78 data set
+data('Births78', package='mosaicData')
+Births <- data.frame(Births78[,c(1,2)])
+head(Births)
+```
+    
+```{r}
+#Exercise 5 part b
+ggplot(data=Births, aes(x=date, y=births))+
+  geom_point()
+```
+*The zig zag shape of the graph definitely stands out to me. I think we might have this trend because the number of births fluctuate depending on the day of the month.*
+
+```{r}
+#Exercise 5 part c
+#Finding out what day of the week the births occured.
+Births <- dplyr::mutate(Births, dow=wday(date))
+head(Births)
+```
+
+```{r}
+#Exercise 5 part d
+ggplot(data=Births, aes(x=date, y=births))+
+  geom_point(aes(color=dow))
+```
+
+*It appears that a lower number of births occurred on Sundays and Saturdays in 1978!* 
